@@ -1,0 +1,50 @@
+---
+output: 
+  html_document:
+    toc: true
+    toc_position: right
+    toc_depth: 2
+    toc_float: yes
+    smooth_scroll: false
+    number_sections: true
+    self_contained: yes
+    code_folding: hide
+    df_print: paged
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE, hide = FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE)
+```
+
+```{r class.source = 'fold-show'}
+library(tidyverse)
+```
+
+```{r, include=FALSE, eval=FALSE}
+# logo
+set.seed(42)
+tibble(x = seq(0, 0.5, length.out = 500),
+       y = 0.2*x^9*(10*(1-x))^6+10*(10*x)^2*(1-x)^10+rnorm(500, sd = 1.5)) %>% 
+  ggplot(aes(x, y))+
+  geom_point()+
+  geom_smooth(method = "lm", se = FALSE, size = 2)+
+  geom_smooth(se = FALSE, color = "red", size = 2)+
+  theme_minimal()+
+  theme(axis.title = element_blank(),
+        axis.text = element_blank())
+```
+
+# GAM
+
+[![](image/01_tweet.png)](https://twitter.com/ucfagls/status/842444686513991680)
+
+
+## Полиномы
+
+
+## Сплайны
+
+
+
