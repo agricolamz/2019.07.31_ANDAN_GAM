@@ -8,6 +8,7 @@ output:
     smooth_scroll: false
     number_sections: true
     self_contained: yes
+    code_folding: show
     df_print: paged
 editor_options: 
   chunk_output_type: console
@@ -16,7 +17,7 @@ editor_options:
 * [Последняя версия](https://agricolamz.github.io/2019.07.31_ANDAN_GAM/index.html)
 * [Исходный код](https://github.com/agricolamz/2019.07.31_ANDAN_GAM)
 
-```{r setup, include=FALSE, hide = FALSE}
+```{r, include=FALSE, hide = FALSE}
 knitr::opts_chunk$set(echo = TRUE, message = FALSE, fig.width = 9, fig.height = 5)
 ```
 
@@ -48,20 +49,13 @@ tibble(x = seq(0, 0.5, length.out = 500),
 
 ## Введение
 
-Давайте на этой паре будем работать с двумя абстрактными полиномами:
+Давайте на этой паре будем работать с таким абстрактным полиномом:
 ```{r}
 set.seed(42)
-poly_1 <- tibble(x = 1:100,
-                 y = 4*x + 8*x^2+rnorm(100, sd = 5000))
+poly <- tibble(x = seq(0, 0.5, length.out = 500),
+               y = 0.2*x^9*(10*(1-x))^6+10*(10*x)^2*(1-x)^10+rnorm(500, sd = 1.5))
 
-poly_1 %>% 
-  ggplot(aes(x, y))+
-  geom_point()
-
-set.seed(42)
-poly_2 <- tibble(x = seq(0, 0.5, length.out = 500),
-                 y = 0.2*x^9*(10*(1-x))^6+10*(10*x)^2*(1-x)^10+rnorm(500, sd = 1.5))
-poly_2 %>% 
+poly %>% 
   ggplot(aes(x, y))+
   geom_point()
 ```
@@ -72,44 +66,56 @@ poly_2 %>%
 $y_i = \sum_{j=0}^k \beta_j \times x^j_i + \epsilon_i = \beta_0 \times x^0_0 + \beta_1 \times x^1_i + ... \beta_k \times x^k_i + \epsilon_i$
 
 ```{r}
-poly_1 %>% 
-  ggplot(aes(x, y))+
-  geom_point()
+poly_fit1 <- lm(y ~ poly(x, 2, raw = TRUE), data = poly)
+poly_fit2 <- lm(y ~ x+I(x^2), data = poly)
 
-poly_1_fit1 <- lm(y ~ poly(x, 2, raw = TRUE), data = poly_1)
-poly_1_fit2 <- lm(y ~ x+I(x^2), data = poly_1)
+summary(poly_fit1)
+summary(poly_fit2)
 
-summary(poly_1_fit1)
-summary(poly_1_fit2)
+poly_fit2_values <- tibble(x = poly$x,
+                           fit = poly_fit2$fitted.values)
 
-poly_1_fit2_values <- tibble(x = poly_1$x,
-                             fit = poly_1_fit2$fitted.values)
-
-poly_1 %>% 
+poly %>% 
   ggplot(aes(x, y))+
   geom_point()+
-  geom_line(data = poly_1_fit2_values, aes(x = x, y = fit), color = "blue")+
-  labs(caption = poly_1_fit2$call)
+  geom_line(data = poly_fit2_values, aes(x = x, y = fit), color = "blue", size = 2)+
+  labs(caption = poly_fit2$call)
+
+poly_fit3 <- lm(y ~ x+I(x^2)+I(x^3), data = poly)
+
+poly_fit3_values <- tibble(x = poly$x,
+                           fit = poly_fit3$fitted.values)
+
+summary(poly_fit3)
+
+poly %>% 
+  ggplot(aes(x, y))+
+  geom_point()+
+  geom_line(data = poly_fit3_values, aes(x = x, y = fit), color = "blue", size = 2)+
+  labs(caption = poly_fit3$call)
 ```
+
+> Загрузите данные по продаже шампуня [(Makridakis, Wheelwright and Hyndman 1998)](https://www.kaggle.com/djokester/sales-of-shampoo-over-a-three-year-period). Визуализируйте данные и оцените полиномом какой степени нужно описывать эти данные? В ответ введите степень.
+
+
 
 ## Сплайны
 
-
-```{r}
+```{r, fig.height=8}
 library(splines)
-poly_1_fit3 <- lm(y ~ bs(x), data = poly_1)
-summary(poly_1_fit3)
+poly_fit3 <- lm(y ~ bs(x), data = poly)
+summary(poly_fit3)
 
-poly_1_fit3_values <- tibble(x = poly_1$x,
-                           fit = poly_1_fit3$fitted.values)
-poly_1 %>% 
+poly_fit3_values <- tibble(x = poly$x,
+                           fit = poly_fit3$fitted.values)
+poly %>% 
   ggplot(aes(x, y))+
   geom_point()+
-  geom_line(data = poly_1_fit3_values, aes(x = x, y = fit), color = "blue")+
-  labs(caption = poly_1_fit3$call) ->
+  geom_line(data = poly_fit3_values, aes(x = x, y = fit), color = "blue", size = 2)+
+  labs(caption = poly_fit3$call) ->
   p1
 
-as_tibble(cbind(bs(poly_1$x), x =poly_1$x)) %>% 
+as_tibble(cbind(bs(poly$x), x = poly$x)) %>% 
   gather(spline, value, -x) %>% 
   ggplot(aes(x, value, color = spline))+
   geom_line() ->
@@ -117,6 +123,25 @@ as_tibble(cbind(bs(poly_1$x), x =poly_1$x)) %>%
 
 gridExtra::grid.arrange(p1, s1)
 
+poly_fit4 <- lm(y ~ bs(x, df = 6), data = poly)
+summary(poly_fit4)
+
+poly_fit4_values <- tibble(x = poly$x,
+                           fit = poly_fit4$fitted.values)
+poly %>% 
+  ggplot(aes(x, y))+
+  geom_point()+
+  geom_line(data = poly_fit4_values, aes(x = x, y = fit), color = "blue", size = 2)+
+  labs(caption = poly_fit4$call) ->
+  p2
+
+as_tibble(cbind(bs(poly$x, df=6), x = poly$x)) %>% 
+  gather(spline, value, -x) %>% 
+  ggplot(aes(x, value, color = spline))+
+  geom_line() ->
+  s2
+
+gridExtra::grid.arrange(p2, s2)
 ```
 
 
@@ -132,17 +157,18 @@ gridExtra::grid.arrange(p1, s1)
 ### Ваш первый GAM
 
 ```{r}
-poly_1_fit4 <- mgcv::gam(y ~ s(x), data = poly_1)
-summary(poly_1_fit4)
+library(mgcv)
+poly_fit4 <- gam(y ~ s(x), data = poly)
+summary(poly_fit4)
 
-fitted <- tibble(x = poly_1$x,
-                 fit = poly_1_fit4$fitted.values)
+fitted <- tibble(x = poly$x,
+                 fit = poly_fit4$fitted.values)
 
-poly_1 %>% 
+poly %>% 
   ggplot(aes(x, y))+
   geom_point()+
   geom_line(data = fitted, aes(x = x, y = fit), color = "blue")+
-  labs(caption = poly_1_fit4$call)
+  labs(caption = poly_fit4$call)
 ```
 
 ### Формулы в GAM
