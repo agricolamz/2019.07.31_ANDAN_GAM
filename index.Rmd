@@ -95,9 +95,11 @@ poly %>%
   labs(caption = poly_fit3$call)
 ```
 
-> Загрузите данные по продаже шампуня [(Makridakis, Wheelwright and Hyndman 1998)](https://www.kaggle.com/djokester/sales-of-shampoo-over-a-three-year-period). Визуализируйте данные и оцените полиномом какой степени нужно описывать эти данные? В ответ введите степень.
+> [Загрузите данные](https://raw.githubusercontent.com/agricolamz/2019.08.01_ANDAN_GAM/master/data/sales-of-shampoo-over-a-three-ye.csv) по продаже шампуня [(Makridakis, Wheelwright and Hyndman 1998)](https://www.kaggle.com/djokester/sales-of-shampoo-over-a-three-year-period). Визуализируйте данные и оцените полиномом какой степени нужно описывать эти данные? В ответ введите степень.
 
 
+
+> [Загрузите данные](https://raw.githubusercontent.com/agricolamz/2019.08.01_ANDAN_GAM/master/data/avocado.csv) по продаже авакадо (см. [исходное описание](https://www.kaggle.com/neuromusic/avocado-prices)).
 
 ## Сплайны
 
