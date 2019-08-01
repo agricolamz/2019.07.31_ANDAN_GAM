@@ -200,7 +200,7 @@ gridExtra::grid.arrange(p3, s3)
 > [Загрузите данные](https://raw.githubusercontent.com/agricolamz/2019.08.01_ANDAN_GAM/master/data/sales-of-shampoo-over-a-three-ye.csv) по продаже шампуня [(Makridakis, Wheelwright and Hyndman 1998)](https://www.kaggle.com/djokester/sales-of-shampoo-over-a-three-year-period), используя функцию `read_csv()`. Постройте регрессию, моделирующую связь между переменными сплайнами второй степени. В ответе превидите предсказание модели для 42 дня (с точностью до двух знаков после запятой).
 
 ```{r, include=FALSE}
-shampo_fit_spline <- lm(sales_of_shampoo ~ bs(day), data = shampoo)
+shampo_fit_spline <- lm(sales_of_shampoo ~ bs(day, degree = 2), data = shampoo)
 summary(shampo_fit_spline)
 
 tibble(x = shampoo$day,
@@ -210,7 +210,7 @@ tibble(x = shampoo$day,
   geom_line(size = 2, color = "blue")+
   labs(caption = shampo_fit_spline$call)
 round(predict(shampo_fit_spline, tibble(day = 42)), 2)
-# 253.65
+# 229.91
 ```
 
 <form name="FormThree" onsubmit="return validateFormThree()" method="post">
@@ -423,7 +423,7 @@ function validateFormTwo() {
 
 function validateFormThree() {
     var x = document.forms["FormThree"]["answerThree"].value;
-    if (x != "253.65") {
+    if (x != "229.91") {
         alert("У меня другой ответ...");
         return false;
     } else {
