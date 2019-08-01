@@ -72,48 +72,64 @@ poly_fit2 <- lm(y ~ x+I(x^2), data = poly)
 summary(poly_fit1)
 summary(poly_fit2)
 
-poly_fit2_values <- tibble(x = poly$x,
-                           fit = poly_fit2$fitted.values)
-
-poly %>% 
-  ggplot(aes(x, y))+
-  geom_point()+
-  geom_line(data = poly_fit2_values, aes(x = x, y = fit), color = "blue", size = 2)+
+tibble(x = poly$x,
+       fit = poly_fit2$fitted.values) %>% 
+  ggplot(aes(x, fit))+
+  geom_point(data = poly, aes(x, y))+
+  geom_line(color = "blue", size = 2)+
   labs(caption = poly_fit2$call)
 
-poly_fit3 <- lm(y ~ x+I(x^2)+I(x^3), data = poly)
-
-poly_fit3_values <- tibble(x = poly$x,
-                           fit = poly_fit3$fitted.values)
+poly_fit3 <- lm(y ~ poly(x, 3, raw = TRUE), data = poly)
 
 summary(poly_fit3)
 
-poly %>% 
-  ggplot(aes(x, y))+
-  geom_point()+
-  geom_line(data = poly_fit3_values, aes(x = x, y = fit), color = "blue", size = 2)+
+tibble(x = poly$x,
+       fit = poly_fit3$fitted.values) %>% 
+  ggplot(aes(x, fit))+
+  geom_point(data = poly, aes(x, y))+
+  geom_line(color = "blue", size = 2)+
   labs(caption = poly_fit3$call)
 ```
 
-> [Загрузите данные](https://raw.githubusercontent.com/agricolamz/2019.08.01_ANDAN_GAM/master/data/sales-of-shampoo-over-a-three-ye.csv) по продаже шампуня [(Makridakis, Wheelwright and Hyndman 1998)](https://www.kaggle.com/djokester/sales-of-shampoo-over-a-three-year-period). Визуализируйте данные и оцените полиномом какой степени нужно описывать эти данные? В ответ введите степень.
+> [Загрузите данные](https://raw.githubusercontent.com/agricolamz/2019.08.01_ANDAN_GAM/master/data/sales-of-shampoo-over-a-three-ye.csv) по продаже шампуня [(Makridakis, Wheelwright and Hyndman 1998)](https://www.kaggle.com/djokester/sales-of-shampoo-over-a-three-year-period), используя функцию `read_csv()`. Постройте регрессию, моделирующую связь между переменными полиномом второй степени. В ответе превидите предсказание модели для 42 дня (с точностью до двух знаков после запятой).
 
+```{r, include=FALSE}
+shampoo <- read_csv("https://raw.githubusercontent.com/agricolamz/2019.08.01_ANDAN_GAM/master/data/sales-of-shampoo-over-a-three-ye.csv")
+
+shampo_fit_poly <- lm(sales_of_shampoo ~ poly(day, 2, raw = TRUE), data = shampoo)
+summary(shampo_fit_poly)
+
+tibble(x = shampoo$day,
+       y = shampo_fit_poly$fitted.values) %>% 
+  ggplot(aes(x, y))+
+  geom_point(data = shampoo, aes(day, sales_of_shampoo))+
+  geom_line(size = 2, color = "blue")
+round(predict(shampo_fit_poly, tibble(day = 42)), 2)
+# 229.91
+```
+
+<form name="FormOne" onsubmit="return validateFormOne()" method="post">
+<input type="text" name="answerOne">
+<input type="submit" value="check">
+</form><br>
 
 
 > [Загрузите данные](https://raw.githubusercontent.com/agricolamz/2019.08.01_ANDAN_GAM/master/data/avocado.csv) по продаже авакадо (см. [исходное описание](https://www.kaggle.com/neuromusic/avocado-prices)).
 
 ## Сплайны
 
+Альтернативный подход: сделать кусочную функцию. В результате данные делятся на узлы (knots), и в каждом узле получившаяся функция, а также ее первая и вторая производная должны быть плавными.
+
 ```{r, fig.height=8}
 library(splines)
 poly_fit3 <- lm(y ~ bs(x), data = poly)
 summary(poly_fit3)
 
-poly_fit3_values <- tibble(x = poly$x,
-                           fit = poly_fit3$fitted.values)
-poly %>% 
-  ggplot(aes(x, y))+
-  geom_point()+
-  geom_line(data = poly_fit3_values, aes(x = x, y = fit), color = "blue", size = 2)+
+tibble(x = poly$x,
+       fit = poly_fit3$fitted.values) %>% 
+  ggplot(aes(x, fit))+
+  geom_line(color = "blue", size = 2)+
+  geom_point(data = poly, aes(x, y))+
   labs(caption = poly_fit3$call) ->
   p1
 
@@ -125,25 +141,43 @@ as_tibble(cbind(bs(poly$x), x = poly$x)) %>%
 
 gridExtra::grid.arrange(p1, s1)
 
-poly_fit4 <- lm(y ~ bs(x, df = 6), data = poly)
+poly_fit4 <- lm(y ~ bs(x, knots = 5), data = poly)
 summary(poly_fit4)
 
-poly_fit4_values <- tibble(x = poly$x,
-                           fit = poly_fit4$fitted.values)
-poly %>% 
-  ggplot(aes(x, y))+
-  geom_point()+
-  geom_line(data = poly_fit4_values, aes(x = x, y = fit), color = "blue", size = 2)+
+tibble(x = poly$x,
+       fit = poly_fit4$fitted.values) %>% 
+  ggplot(aes(x, fit))+
+  geom_line(color = "blue", size = 2)+
+  geom_point(dat = poly, aes(x,y))+
   labs(caption = poly_fit4$call) ->
   p2
 
-as_tibble(cbind(bs(poly$x, df=6), x = poly$x)) %>% 
+as_tibble(cbind(bs(poly$x, knots = 5), x = poly$x)) %>% 
   gather(spline, value, -x) %>% 
   ggplot(aes(x, value, color = spline))+
   geom_line() ->
   s2
 
 gridExtra::grid.arrange(p2, s2)
+
+poly_fit5 <- lm(y ~ bs(x, degree = 5), data = poly)
+summary(poly_fit5)
+
+tibble(x = poly$x,
+       fit = poly_fit5$fitted.values) %>% 
+  ggplot(aes(x, fit))+
+  geom_line(color = "blue", size = 2)+
+  geom_point(dat = poly, aes(x,y))+
+  labs(caption = poly_fit5$call) ->
+  p3
+
+as_tibble(cbind(bs(poly$x, degree = 5), x = poly$x)) %>% 
+  gather(spline, value, -x) %>% 
+  ggplot(aes(x, value, color = spline))+
+  geom_line() ->
+  s3
+
+gridExtra::grid.arrange(p3, s3)
 ```
 
 
@@ -151,25 +185,21 @@ gridExtra::grid.arrange(p2, s2)
 
 ### Что такое GAM
 
-Согласно теореме Колмогорова -- Арнольда, каждая непрерывная функция может быть представлена в виде композиции непрерывных функций одной переменной. Композиция --- применение одной функции к результатам другой: $(G\circ F)(x) = G(F(x))$. Подробнее см. [лекции Виктора Клепцына](https://forany.xyz/a-453).
-
-
+Согласно теореме Колмогорова -- Арнольда, каждая непрерывная функция может быть представлена в виде композиции непрерывных функций одной переменной. Композиция --- применение одной функции к результатам другой: $(G\circ F)(x) = G(F(x))$. Подробнее см. [лекции Виктора Клепцына](https://forany.xyz/a-453). Проблема осталась только одна: эта формула не дает никакого инсайта по поводу того, как эту функциб получить. На практике фитят теми же кубическими сплайнами (но не обязательно), используя [Backfitting algorithm](https://en.wikipedia.org/wiki/Backfitting_algorithm).
 
 
 ### Ваш первый GAM
 
 ```{r}
 library(mgcv)
-poly_fit4 <- gam(y ~ s(x), data = poly)
+poly_fit4 <- gam(y ~ s(x), data = poly, method = "REML")
 summary(poly_fit4)
 
-fitted <- tibble(x = poly$x,
-                 fit = poly_fit4$fitted.values)
-
-poly %>% 
-  ggplot(aes(x, y))+
-  geom_point()+
-  geom_line(data = fitted, aes(x = x, y = fit), color = "blue")+
+tibble(x = poly$x,
+       fit = poly_fit4$fitted.values) %>% 
+  ggplot(aes(x, fit))+
+  geom_line(color = "blue", size = 2)+
+  geom_point(data = poly, aes(x, y))+
   labs(caption = poly_fit4$call)
 ```
 
@@ -183,3 +213,25 @@ poly %>%
 
 ### Проверка на concurvity
 
+## Что дальше?
+
+* Logistic GAM
+* tensor smooths: `te()`, `ti()`
+
+Что почитать, посмотреть?
+
+* Wood S. N. (2017) Generalized Additive Models: An Introduction with R
+* Ross N. - Nonlinear Modeling in R with GAMs [версия онлайн](https://www.datacamp.com/courses/nonlinear-modeling-in-r-with-gams), [интерактивный сайт](https://noamross.github.io/gams-in-r-course/)
+
+<script>
+function validateFormOne() {
+    var x = document.forms["FormOne"]["answerOne"].value;
+    if (x != "229.91") {
+        alert("У меня другой ответ...");
+        return false;
+    } else {
+        alert("Да, все правильно");
+        return false;
+    }
+}
+</script>
