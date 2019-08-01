@@ -56,7 +56,7 @@ poly <- tibble(x = seq(0, 0.5, length.out = 500),
                y = 0.2*x^9*(10*(1-x))^6+10*(10*x)^2*(1-x)^10+rnorm(500, sd = 1.5))
 
 poly %>% 
-  ggplot(aes(x, y, color = z))+
+  ggplot(aes(x, y))+
   geom_point()
 ```
 
@@ -118,13 +118,13 @@ round(predict(shampo_fit_poly, tibble(day = 42)), 2)
 > [Загрузите данные](https://raw.githubusercontent.com/agricolamz/2019.08.01_ANDAN_GAM/master/data/avocado.csv) по продаже авакадо (см. [исходное описание](https://www.kaggle.com/neuromusic/avocado-prices)). Визуализируйте полученные данные (x = `Date`, y = `AveragePrice`, color = `type`), сделайте фасетизацию по переменной `region`, а при помощи функции `geom_smooth(method = "lm", formula = ...` нанесите на график полиномы 12-ой степени. В каком регионе, как кажется, наименьший разрыв в средней цене обычных и органических авокадо.
 
 ```{r, include=FALSE}
-df <- read_csv("https://raw.githubusercontent.com/agricolamz/2019.08.01_ANDAN_GAM/master/data/avocado.csv")
+avocado <- read_csv("https://raw.githubusercontent.com/agricolamz/2019.08.01_ANDAN_GAM/master/data/avocado.csv")
 
-df %>% 
-  ggplot(aes(Date, AveragePrice, color = type))+
+avocado %>% 
+  ggplot(aes(Date, AveragePrice, color = a_type))+
   geom_point()+
   facet_wrap(~region)+
-  geom_smooth(method = "lm", formula = y ~ poly(x, 12), color = "black", aes(group = type))
+  geom_smooth(method = "lm", formula = y ~ poly(x, 12), color = "black", aes(group = a_type))
 # Pittsburgh
 ```
 
@@ -200,8 +200,6 @@ gridExtra::grid.arrange(p3, s3)
 > [Загрузите данные](https://raw.githubusercontent.com/agricolamz/2019.08.01_ANDAN_GAM/master/data/sales-of-shampoo-over-a-three-ye.csv) по продаже шампуня [(Makridakis, Wheelwright and Hyndman 1998)](https://www.kaggle.com/djokester/sales-of-shampoo-over-a-three-year-period), используя функцию `read_csv()`. Постройте регрессию, моделирующую связь между переменными сплайнами второй степени. В ответе превидите предсказание модели для 42 дня (с точностью до двух знаков после запятой).
 
 ```{r, include=FALSE}
-shampoo <- read_csv("https://raw.githubusercontent.com/agricolamz/2019.08.01_ANDAN_GAM/master/data/sales-of-shampoo-over-a-three-ye.csv")
-
 shampo_fit_spline <- lm(sales_of_shampoo ~ bs(day), data = shampoo)
 summary(shampo_fit_spline)
 
@@ -233,7 +231,11 @@ round(predict(shampo_fit_spline, tibble(day = 42)), 2)
 library(mgcv)
 poly_fit4 <- gam(y ~ s(x), data = poly)
 summary(poly_fit4)
+```
 
+edf -- effective degrees of freedom (edf = 1 --- прямая, edf = 2 --- полином второй степени и т. д.) Высокий edf не значит статистическую значимость: высокий edf может не иметь статистической значимости и наоборот.
+
+```{r}
 tibble(x = poly$x,
        fit = poly_fit4$fitted.values) %>% 
   ggplot(aes(x, fit))+
@@ -241,6 +243,9 @@ tibble(x = poly$x,
   geom_point(data = poly, aes(x, y))+
   labs(caption = poly_fit4$call)
 ```
+
+> В пакете `mgcv` достаточно много усилий положено для визуализации, так что имеет смысл посмотреть `?plot.gam`. Когда вы рисуете модель используйте аргумент `plot(your_model, all.terms = TRUE)`
+
 
 ### Параметры сглаживания
 
@@ -319,9 +324,69 @@ tibble(x = shampoo$day,
   labs(caption = poly_fit4$call)
 ```
 
+### Больше предикторов
+
+Если вы хотите использовать категориальные предикторы переведите их в факторы!
+
+```{r}
+avocado %>% 
+  filter(region == "Sacramento") %>% 
+  mutate(a_type = factor(a_type)) ->
+  avocado_sacramento
+
+## модель со "случайным свободным членом"
+avocado_gam_1 <- gam(AveragePrice ~ s(Date2)+a_type, data = avocado_sacramento, method = "REML")
+summary(avocado_gam_1)
+
+tibble(x = avocado_sacramento$Date2,
+       a_type = avocado_sacramento$a_type,
+       fit = avocado_gam_1$fitted.values) %>% 
+  ggplot(aes(x, fit, color = a_type))+
+  geom_line()+
+  geom_point(data = avocado_sacramento, aes(Date2, AveragePrice, color = a_type))+
+  labs(caption = avocado_gam_1$call)
+
+## модель со "случайным интерсептом"
+avocado_gam_2 <- gam(AveragePrice ~ s(Date2, by = a_type), data = avocado_sacramento, method = "REML")
+summary(avocado_gam_2)
+
+tibble(x = avocado_sacramento$Date2,
+       a_type = avocado_sacramento$a_type,
+       fit = avocado_gam_2$fitted.values) %>% 
+  ggplot(aes(x, fit, color = a_type))+
+  geom_line()+
+  geom_point(data = avocado_sacramento, aes(Date2, AveragePrice, color = a_type))+
+  labs(caption = avocado_gam_2$call)
+
+## модель со "случайным интерсептом и свободным членом"
+avocado_gam_3 <- gam(AveragePrice ~ s(Date2, by = a_type)+a_type, data = avocado_sacramento, method = "REML")
+summary(avocado_gam_3)
+
+tibble(x = avocado_sacramento$Date2,
+       a_type = avocado_sacramento$a_type,
+       fit = avocado_gam_3$fitted.values) %>% 
+  ggplot(aes(x, fit, color = a_type))+
+  geom_line()+
+  geom_point(data = avocado_sacramento, aes(Date2, AveragePrice, color = a_type))+
+  labs(caption = avocado_gam_3$call)
+```
+
+
 ### `gam.check()`
+```{r}
+gam.check(avocado_gam_3)
+```
 
 ### Проверка на concurvity
+```{r}
+concurvity(avocado_gam_3)
+```
+
+Нужно смотреть на значение в строчке `worst`, если оно высокое, значит мы наблюдаем concurvity.
+
+```{r}
+concurvity(avocado_gam_3, full = FALSE)
+```
 
 ## Что дальше?
 
