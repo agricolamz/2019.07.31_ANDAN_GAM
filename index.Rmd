@@ -56,7 +56,7 @@ poly <- tibble(x = seq(0, 0.5, length.out = 500),
                y = 0.2*x^9*(10*(1-x))^6+10*(10*x)^2*(1-x)^10+rnorm(500, sd = 1.5))
 
 poly %>% 
-  ggplot(aes(x, y))+
+  ggplot(aes(x, y, color = z))+
   geom_point()
 ```
 
@@ -103,7 +103,8 @@ tibble(x = shampoo$day,
        y = shampo_fit_poly$fitted.values) %>% 
   ggplot(aes(x, y))+
   geom_point(data = shampoo, aes(day, sales_of_shampoo))+
-  geom_line(size = 2, color = "blue")
+  geom_line(size = 2, color = "blue")+
+  labs(caption = shampo_fit_poly$call)
 round(predict(shampo_fit_poly, tibble(day = 42)), 2)
 # 229.91
 ```
@@ -114,7 +115,23 @@ round(predict(shampo_fit_poly, tibble(day = 42)), 2)
 </form><br>
 
 
-> [Загрузите данные](https://raw.githubusercontent.com/agricolamz/2019.08.01_ANDAN_GAM/master/data/avocado.csv) по продаже авакадо (см. [исходное описание](https://www.kaggle.com/neuromusic/avocado-prices)).
+> [Загрузите данные](https://raw.githubusercontent.com/agricolamz/2019.08.01_ANDAN_GAM/master/data/avocado.csv) по продаже авакадо (см. [исходное описание](https://www.kaggle.com/neuromusic/avocado-prices)). Визуализируйте полученные данные (x = `Date`, y = `AveragePrice`, color = `type`), сделайте фасетизацию по переменной `region`, а при помощи функции `geom_smooth(method = "lm", formula = ...` нанесите на график полиномы 12-ой степени. В каком регионе, как кажется, наименьший разрыв в средней цене обычных и органических авокадо.
+
+```{r, include=FALSE}
+df <- read_csv("https://raw.githubusercontent.com/agricolamz/2019.08.01_ANDAN_GAM/master/data/avocado.csv")
+
+df %>% 
+  ggplot(aes(Date, AveragePrice, color = type))+
+  geom_point()+
+  facet_wrap(~region)+
+  geom_smooth(method = "lm", formula = y ~ poly(x, 12), color = "black", aes(group = type))
+# Pittsburgh
+```
+
+<form name="FormTwo" onsubmit="return validateFormTwo()" method="post">
+<input type="text" name="answerTwo">
+<input type="submit" value="check">
+</form><br>
 
 ## Сплайны
 
@@ -180,6 +197,28 @@ as_tibble(cbind(bs(poly$x, degree = 5), x = poly$x)) %>%
 gridExtra::grid.arrange(p3, s3)
 ```
 
+> [Загрузите данные](https://raw.githubusercontent.com/agricolamz/2019.08.01_ANDAN_GAM/master/data/sales-of-shampoo-over-a-three-ye.csv) по продаже шампуня [(Makridakis, Wheelwright and Hyndman 1998)](https://www.kaggle.com/djokester/sales-of-shampoo-over-a-three-year-period), используя функцию `read_csv()`. Постройте регрессию, моделирующую связь между переменными сплайнами второй степени. В ответе превидите предсказание модели для 42 дня (с точностью до двух знаков после запятой).
+
+```{r, include=FALSE}
+shampoo <- read_csv("https://raw.githubusercontent.com/agricolamz/2019.08.01_ANDAN_GAM/master/data/sales-of-shampoo-over-a-three-ye.csv")
+
+shampo_fit_spline <- lm(sales_of_shampoo ~ bs(day), data = shampoo)
+summary(shampo_fit_spline)
+
+tibble(x = shampoo$day,
+       y = shampo_fit_spline$fitted.values) %>% 
+  ggplot(aes(x, y))+
+  geom_point(data = shampoo, aes(day, sales_of_shampoo))+
+  geom_line(size = 2, color = "blue")+
+  labs(caption = shampo_fit_spline$call)
+round(predict(shampo_fit_spline, tibble(day = 42)), 2)
+# 253.65
+```
+
+<form name="FormThree" onsubmit="return validateFormThree()" method="post">
+<input type="text" name="answerThree">
+<input type="submit" value="check">
+</form><br>
 
 ## GAM
 
@@ -192,7 +231,7 @@ gridExtra::grid.arrange(p3, s3)
 
 ```{r}
 library(mgcv)
-poly_fit4 <- gam(y ~ s(x), data = poly, method = "REML")
+poly_fit4 <- gam(y ~ s(x), data = poly)
 summary(poly_fit4)
 
 tibble(x = poly$x,
@@ -203,11 +242,82 @@ tibble(x = poly$x,
   labs(caption = poly_fit4$call)
 ```
 
-### Формулы в GAM
-
 ### Параметры сглаживания
 
-### Количество базовых функций
+В GAM два параметра сглаживания:
+
+* коэффициент сглаживания
+* количество функций, которыми сглаживается
+
+#### Настройка коэффициента сглаживания:
+
+* слишком большой
+
+```{r}
+tibble(x = shampoo$day,
+       fit = gam(sales_of_shampoo ~ s(day, sp = 50), data = shampoo)$fitted.values) %>% 
+  ggplot(aes(x, fit))+
+  geom_line(color = "blue", size = 2)+
+  geom_point(data = shampoo, aes(day, sales_of_shampoo))+
+  labs(caption = poly_fit4$call)
+```
+
+* слишком маленький
+
+```{r}
+tibble(x = shampoo$day,
+       fit = gam(sales_of_shampoo ~ s(day, sp = 1e-5), data = shampoo)$fitted.values) %>% 
+  ggplot(aes(x, fit))+
+  geom_line(color = "blue", size = 2)+
+  geom_point(data = shampoo, aes(day, sales_of_shampoo))+
+  labs(caption = poly_fit4$call)
+```
+
+* в самый раз... наверное...
+```{r}
+tibble(x = shampoo$day,
+       fit = gam(sales_of_shampoo ~ s(day, sp = 0.5), data = shampoo)$fitted.values) %>% 
+  ggplot(aes(x, fit))+
+  geom_line(color = "blue", size = 2)+
+  geom_point(data = shampoo, aes(day, sales_of_shampoo))+
+  labs(caption = poly_fit4$call)
+```
+
+* а вот что выдает хваленный `method = "REML"`:
+```{r}
+tibble(x = shampoo$day,
+       fit = gam(sales_of_shampoo ~ s(day), data = shampoo, method = "REML")$fitted.values) %>% 
+  ggplot(aes(x, fit))+
+  geom_line(color = "blue", size = 2)+
+  geom_point(data = shampoo, aes(day, sales_of_shampoo))+
+  labs(caption = poly_fit4$call)
+```
+
+#### Настройка количества базовых функций:
+
+Не может превышать количества наблюдений.
+
+* слишком много
+
+```{r}
+tibble(x = shampoo$day,
+       fit = gam(sales_of_shampoo ~ s(day, k = 30), data = shampoo)$fitted.values) %>% 
+  ggplot(aes(x, fit))+
+  geom_line(color = "blue", size = 2)+
+  geom_point(data = shampoo, aes(day, sales_of_shampoo))+
+  labs(caption = poly_fit4$call)
+```
+
+* слишком мало
+
+```{r}
+tibble(x = shampoo$day,
+       fit = gam(sales_of_shampoo ~ s(day, sp = 1), data = shampoo)$fitted.values) %>% 
+  ggplot(aes(x, fit))+
+  geom_line(color = "blue", size = 2)+
+  geom_point(data = shampoo, aes(day, sales_of_shampoo))+
+  labs(caption = poly_fit4$call)
+```
 
 ### `gam.check()`
 
@@ -234,4 +344,27 @@ function validateFormOne() {
         return false;
     }
 }
+
+function validateFormTwo() {
+    var x = document.forms["FormTwo"]["answerTwo"].value;
+    if (x != "Pittsburgh") {
+        alert("У меня другой ответ... Но я делал на глаз и скорее всего не прав!");
+        return false;
+    } else {
+        alert("Да, все правильно");
+        return false;
+    }
+}
+
+function validateFormThree() {
+    var x = document.forms["FormThree"]["answerThree"].value;
+    if (x != "253.65") {
+        alert("У меня другой ответ...");
+        return false;
+    } else {
+        alert("Да, все правильно");
+        return false;
+    }
+}
+
 </script>
