@@ -14,8 +14,8 @@ editor_options:
   chunk_output_type: console
 ---
 
-* [Последняя версия](https://agricolamz.github.io/2019.07.31_ANDAN_GAM/index.html)
-* [Исходный код](https://github.com/agricolamz/2019.07.31_ANDAN_GAM)
+* [Последняя версия](https://agricolamz.github.io/2019.08.01_ANDAN_GAM/index.html)
+* [Исходный код](https://github.com/agricolamz/2019.08.01_ANDAN_GAM)
 
 ```{r, include=FALSE, hide = FALSE}
 knitr::opts_chunk$set(echo = TRUE, message = FALSE, fig.width = 9, fig.height = 5)
